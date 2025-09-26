@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+   <pre id="output"></pre>
+   <!-- <script>
+    const output = document.getElementById("output");
+
+	  // Example: Base64 string from B4A (replace with actual Base64)
+	  const base64Font = "${base64}";
+
+	  // Convert base64 To Uint8Array
+	  function base64ToUint8Array(base64) {
+	    const binary_string = atob(base64.replace(/\s+/g, ''));
+	    const len = binary_string.length;
+	    const bytes = new Uint8Array(len);
+	    for (let i = 0; i < len; i++) {
+	      bytes[i] = binary_string.charCodeAt(i);
+	    }
+	    return bytes;
+	  }
+
+	  // Create Blob from Uint8Array
+	  const fontBytes = base64ToUint8Array(base64Font);
+	  const blob = new Blob([fontBytes], { Type: "font/ttf" }); // Or font/otf
+
+	  // Create object Url (simulates a File)
+	  const Url = Url.createObjectURL(blob);
+
+	  // Fetch the object Url As ArrayBuffer
+	  fetch(Url)
+	    .then(res => res.arrayBuffer())
+	    .then(buffer => {
+	      const fontData = FontName.parse(buffer); // parse font metadata
+	      output.textContent = JSON.stringify(fontData, null, 2);
+	      // Revoke URL after use
+	      URL.revokeObjectURL(url);
+	    })
+	    .catch(err => {
+	      output.textContent = "Error parsing font: " + err;
+	    });
+   </script> -->
+</body>
+</html>
