@@ -1,0 +1,286 @@
+﻿Build1=Default,b4a.example
+File1=deepdata.otf
+File2=fontmeta.html
+File3=gofar-script.ttf
+File4=index.html
+File5=index.js
+File6=Layout.bal
+File7=robosapien.otf
+File8=test.html
+File9=test2.html
+FileGroup1=Default Group
+FileGroup2=Default Group
+FileGroup3=Default Group
+FileGroup4=Default Group
+FileGroup5=Default Group
+FileGroup6=Default Group
+FileGroup7=Default Group
+FileGroup8=Default Group
+FileGroup9=Default Group
+Group=Default Group
+Library1=core
+Library10=fileprovider
+Library2=javaobject
+Library3=json
+Library4=phone
+Library5=reflection
+Library6=stringutils
+Library7=webviewextras
+Library8=webviewsettings
+Library9=xui
+ManifestCode='This code will be applied to the manifest file during compilation.~\n~'You do not need to modify it in most cases.~\n~'See this link for for more information: https://www.b4x.com/forum/showthread.php?p=78136~\n~AddManifestText(~\n~<uses-sdk android:minSdkVersion="21" android:targetSdkVersion="35"/>~\n~<supports-screens android:largeScreens="true" ~\n~    android:normalScreens="true" ~\n~    android:smallScreens="true" ~\n~    android:anyDensity="true"/>)~\n~SetApplicationAttribute(android:icon, "@drawable/icon")~\n~SetApplicationAttribute(android:label, "$LABEL$")~\n~CreateResourceFromFile(Macro, Themes.LightTheme)~\n~'End of default text.~\n~AddApplicationText(~\n~  <provider~\n~  android:name="android.support.v4.content.FileProvider"~\n~  android:authorities="$PACKAGE$.provider"~\n~  android:exported="false"~\n~  android:grantUriPermissions="true">~\n~  <meta-data~\n~  android:name="android.support.FILE_PROVIDER_PATHS"~\n~  android:resource="@xml/provider_paths"/>~\n~  </provider>~\n~)~\n~CreateResource(xml, provider_paths,~\n~   <files-path name="name" path="shared" />~\n~)
+Module1=Starter
+NumberOfFiles=9
+NumberOfLibraries=10
+NumberOfModules=1
+Version=13.4
+@EndOfDesignText@
+#Region  Project Attributes 
+	#ApplicationLabel: B4A Example
+	#VersionCode: 3
+	#VersionName: 
+	'SupportedOrientations possible values: unspecified, landscape or portrait.
+	#SupportedOrientations: unspecified
+	#CanInstallToExternalStorage: False
+#End Region
+
+#Region  Activity Attributes 
+	#FullScreen: False
+	#IncludeTitle: True
+#End Region
+
+Sub Process_Globals
+	'These global variables will be declared once when the application starts.
+	'These variables can be accessed from all modules.
+	Private xui As XUI
+	Private r As Reflector
+	Private cc As ContentChooser
+	Private Provider As FileProvider
+End Sub
+
+Sub Globals
+	'These global variables will be redeclared each time the activity is created.
+	Private wview As WebView
+	Private wvx As WebViewExtras
+	Private wvs As WebViewSettings
+	Private BtnAsset As Button
+	Private btnUpload As Button
+End Sub
+
+Sub Activity_Create(FirstTime As Boolean)
+	Activity.LoadLayout("Layout")
+	
+	Provider.Initialize
+	' Remove line breaks or spaces (sometimes added)
+''	base64 = base64.Replace(CRLF, "")
+''	base64 = base64.Replace(" ", "")
+	
+	wview.Initialize("wview")
+	Activity.AddView(wview,0,10%y,100%x,80%y)
+	
+	wview.AllowFileAccess = True
+	wview.JavaScriptEnabled = True
+	AllowUniversalAccessFromFileURLs(wview)
+	wview.Zoom(True)
+	' Enable these settings before loading the WebView
+	
+	wvx.addWebChromeClient(wview, "wcc")
+	wvx.addJavascriptInterface(wview, "b4a")
+	
+	wvs.setAllowFileAccess(wview, True)
+	
+	
+	Dim client As JavaObject '= Me
+	client.InitializeContext
+	client.InitializeNewInstance(Application.PackageName & ".main$MyChromeClient", Array(r.GetActivityBA))
+	wview.As(JavaObject).RunMethod("setWebChromeClient", Array(client))
+		
+''	Dim html As String = File.ReadString(File.DirAssets,"fontmeta.html")
+''	'html = html.Replace("", base64) ' inject your base64 font
+''	wview.LoadHtml(html)
+''	
+''	Wait For wview_PageFinished(Url As String)
+''	LoadscriptFiles
+	'/Sleep(5000)
+	
+
+End Sub
+
+Sub EncFontFile(dir As String, ttfFileName As String) As String
+	Dim bytes() As Byte
+	bytes = File.ReadBytes(dir, ttfFileName) ' your font file
+	Dim base64 As String
+	Dim su As StringUtils
+	base64=su.EncodeBase64(bytes)
+	Return base64
+End Sub
+Sub processAssetFontFile(ttfFileName As String)
+	Dim ttfBase64 As String = EncFontFile(File.DirAssets, ttfFileName)
+	Dim html As String = File.ReadString(File.DirAssets,"fontmeta.html")
+	'html = html.Replace("", base64) ' inject your base64 font
+	wview.LoadHtml(html)
+	
+	Wait For wview_PageFinished(Url As String)
+	LoadscriptFiles
+	Dim js As String
+	js = $"
+		const output = document.getElementById("output");
+
+		// Base64 font string (from B4A)
+		const base64Font = "${ttfBase64}";
+
+		// Convert base64 directly To ArrayBuffer
+		function base64ToArrayBuffer(base64) {
+		  base64 = base64.replace(/\s+/g, ''); // remove whitespace/newlines
+		  const binary = atob(base64);
+		  const len = binary.length;
+		  const buffer = new ArrayBuffer(len);
+		  const view = new Uint8Array(buffer);
+		  for (let i = 0; i < len; i++) {
+		    view[i] = binary.charCodeAt(i);
+		  }
+		  return buffer;
+		}
+
+		try {
+		  const arrayBuffer = base64ToArrayBuffer(base64Font);
+		  const fontData = FontName.parse(arrayBuffer); // parse font metadata
+		  output.textContent = JSON.stringify(fontData, null, 2);
+		  b4a.CallSub("getFontMeta", true, output.textContent);
+		  //alert(output.textContent);
+		} catch (err) {
+		  output.textContent = "Error parsing font: " + err;
+		  b4a.CallSub("getFontMetaError", true, "Error parsing font: " + err);
+		}
+
+	"$
+	wvx.executeJavascript(wview, js)
+End Sub
+Sub getFontMetaError(error As String)
+	Log(error)
+End Sub
+Sub getFontMeta(fontMeta As String)
+	Log(fontMeta)
+	Dim parser As JSONParser
+	parser.Initialize(fontMeta)
+	Dim jRoot As List = parser.NextArray
+	For Each coljRoot As Map In jRoot
+		Dim lang As Int = coljRoot.Get("_lang")
+		Log(lang)
+		Dim copyright As String = coljRoot.Get("copyright")
+		Log(copyright)
+		Dim fullName As String = coljRoot.Get("fullName")
+		Log(fullName)
+		Dim description As String = coljRoot.Get("description")
+		Log(description)
+		Dim typoFamilyName As String = coljRoot.Get("typoFamilyName")
+		Log(typoFamilyName)
+		Dim designer As String = coljRoot.Get("designer")
+		Log(designer)
+		Dim version As String = coljRoot.Get("version")
+		Log(version)
+		Dim fontSubfamily As String = coljRoot.Get("fontSubfamily")
+		Log(fontSubfamily)
+		Dim manufacturer As String = coljRoot.Get("manufacturer")
+		Log(manufacturer)
+		Dim typoSubfamilyName As String = coljRoot.Get("typoSubfamilyName")
+		Log(typoSubfamilyName)
+		Dim postScriptName As String = coljRoot.Get("postScriptName")
+		Log(postScriptName)
+		Dim fontFamily As String = coljRoot.Get("fontFamily")
+		Log(fontFamily)
+		Dim ID As String = coljRoot.Get("ID")
+		Log(ID)
+	Next
+	
+End Sub
+Sub LoadscriptFiles
+	'Load js libraries here according to their subfolders relaative to Files folder with no leading or trailing slash
+	'samw as their paths orlocations in the html file
+	Dim CombinedJs As String
+	' Load libraries first. You must know the correct load order!
+	'Ignore the warning
+	CombinedJs = CombinedJs & File.ReadString(File.DirAssets, "index.js") & CRLF
+	' Execute the entire combined code
+	wvx.ExecuteJavaScript(wview, CombinedJs)
+	Log("script loaded")
+End Sub
+Sub AllowUniversalAccessFromFileURLs(wv As WebView)
+	Dim jo As JavaObject = wv
+	Dim settings As JavaObject = jo.RunMethod("getSettings", Null)
+	
+	r.Target = settings
+	r.RunMethod2("setAllowUniversalAccessFromFileURLs", True, "java.lang.boolean")
+End Sub
+
+Sub ShowFile_Chooser (FilePathCallback As Object, FileChooserParams As Object)
+	cc.Initialize("CC")
+	cc.Show("font/ttf, font/otf", "Choose File")
+	
+	Wait For CC_Result (Success As Boolean, Dir As String, FileName As String)
+	Dim jo As JavaObject = Me
+	If Success Then
+		Try
+			Log(FileName)
+			Dim ext As String = FileName.SubString2(FileName.IndexOf("."),FileName.Length)
+			File.Copy(Dir, FileName, Provider.SharedFolder, "TempFile." & ext )
+			'SendResult SHOULD be static, otherwise error stops the app
+			jo.RunMethod("SendResult", Array(Provider.GetFileUri("TempFile." & ext), FilePathCallback))
+		Catch
+			Log(LastException.Message)
+		End Try		
+			
+	Else
+		jo.RunMethod("SendResult", Array(Null, FilePathCallback))
+	End If
+End Sub
+Sub Activity_Resume
+
+End Sub
+
+Sub Activity_Pause (UserClosed As Boolean)
+
+End Sub
+
+Sub Button1_Click
+	xui.MsgboxAsync("Hello world!", "B4X")
+End Sub
+
+
+#if Java
+import android.webkit.*;
+import android.webkit.WebChromeClient.*;
+import android.net.*;
+public static void SendResult(Uri uri, ValueCallback<Uri[]> filePathCallback) {
+	if (uri != null)
+		filePathCallback.onReceiveValue(new Uri[] {uri});
+	else
+		filePathCallback.onReceiveValue(null);
+		
+}
+public static class MyChromeClient extends WebChromeClient {
+	private final BA target;
+	public MyChromeClient(BA target) {
+		this.target = target;
+	}
+@Override
+ public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback,
+            FileChooserParams fileChooserParams) {
+		target.raiseEventFromUI(this, "showfile_chooser", filePathCallback, fileChooserParams);
+        return true;
+    }
+	}
+#End If
+
+Private Sub BtnAsset_Click
+	processAssetFontFile("deepdata.otf")
+End Sub
+
+Private Sub btnUpload_Click
+	Dim html As String = File.ReadString(File.DirAssets,"test.html")
+	'html = html.Replace("", base64) ' inject your base64 font
+	wview.LoadHtml(html)
+	
+	Wait For wview_PageFinished(Url As String)
+	LoadscriptFiles
+End Sub
